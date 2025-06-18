@@ -88,17 +88,30 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                     let bundle = Bundle(for: type(of: self))
                     var iconImageView: UIImageView?
 
-                    // ====== 重点修改这里：更明确地获取插件的 Bundle ======
-                    // 获取当前 SwiftSecureApplicationPlugin 类所在的 Bundle
-                    let currentBundle = Bundle(for: type(of: self))
-                    // 获取当前 Bundle 中名为 "secure_application.bundle" 的 Bundle (通常插件会打包成一个 .bundle 文件)
-                    // 如果你的插件名称是 secure_application，那么对应的资源包通常是 secure_application.bundle
+                    // ====== 核心修改点：更可靠地获取插件的资源 Bundle ======
+                    // 获取当前插件的 Bundle 名称
+                    // 对于 podspec 定义的插件，其资源 Bundle 名称通常是 "Flutter<PluginName>Plugin.bundle"
+                    // 或者直接是 "<PluginName>.bundle"
+                    // 对于 secure_application，尝试 "secure_application.bundle"
+                    let bundleName = "secure_application"  // 这是你的插件名称
+                    let frameworkBundle = Bundle(for: type(of: self))  // 获取当前类所在的 Framework/Bundle
                     var resourceBundle: Bundle? = nil
-                    if let resourceBundlePath = currentBundle.path(
-                        forResource: "secure_application",
+
+                    // 优先尝试从 Framework Bundle 中找到命名为 "secure_application.bundle" 的资源 Bundle
+                    if let path = frameworkBundle.path(
+                        forResource: bundleName,
                         ofType: "bundle"
                     ) {
-                        resourceBundle = Bundle(path: resourceBundlePath)
+                        resourceBundle = Bundle(path: path)
+                    } else if let path = frameworkBundle.path(
+                        forResource: "Flutter\(bundleName.capitalized)Plugin",
+                        ofType: "bundle"
+                    ) {
+                        // 尝试 Flutter 自动生成的命名约定，例如 FlutterSecureApplicationPlugin.bundle
+                        resourceBundle = Bundle(path: path)
+                    } else {
+                        // 如果以上都没有找到，退回到当前类的 Bundle (对于example或某些特殊情况可能有效)
+                        resourceBundle = frameworkBundle
                     }
 
                     if let image = UIImage(
