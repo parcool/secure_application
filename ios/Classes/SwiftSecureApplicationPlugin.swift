@@ -94,19 +94,13 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                     // 或者直接是 "<PluginName>.bundle"
                     // 对于 secure_application，尝试 "secure_application.bundle"
                     let bundleName = "secure_application"  // 这是你的插件名称
-                    let frameworkBundle = Bundle(for: type(of: self))  // 获取当前类所在的 Framework/Bundle
+                    let frameworkBundle = Bundle(for: type(of: self)) // 获取当前类所在的 Framework/Bundle
                     var resourceBundle: Bundle? = nil
 
                     // 优先尝试从 Framework Bundle 中找到命名为 "secure_application.bundle" 的资源 Bundle
-                    if let path = frameworkBundle.path(
-                        forResource: bundleName,
-                        ofType: "bundle"
-                    ) {
+                    if let path = frameworkBundle.path(forResource: bundleName, ofType: "bundle") {
                         resourceBundle = Bundle(path: path)
-                    } else if let path = frameworkBundle.path(
-                        forResource: "Flutter\(bundleName.capitalized)Plugin",
-                        ofType: "bundle"
-                    ) {
+                    } else if let path = frameworkBundle.path(forResource: "Flutter\(bundleName.capitalized)Plugin", ofType: "bundle") {
                         // 尝试 Flutter 自动生成的命名约定，例如 FlutterSecureApplicationPlugin.bundle
                         resourceBundle = Bundle(path: path)
                     } else {
@@ -116,7 +110,7 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
 
                     if let image = UIImage(
                         named: "SecureLogo",
-                        in: resourceBundle ?? currentBundle,
+                        in: resourceBundle,
                         compatibleWith: nil
                     ) {
                         iconImageView = UIImageView(image: image)
