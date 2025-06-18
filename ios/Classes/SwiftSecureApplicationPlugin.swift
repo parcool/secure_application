@@ -9,6 +9,7 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
 
     internal let registrar: FlutterPluginRegistrar
     private var methodChannel: FlutterMethodChannel?
+    var lockedDisplayMessage: String = "您的应用已锁定"
 
     init(registrar: FlutterPluginRegistrar) {
         self.registrar = registrar
@@ -69,7 +70,7 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                     window.bringSubviewToFront(colorView)
 
                     let blurEffect = UIBlurEffect(
-                        style: UIBlurEffect.Style.extraLight
+                        style: UIBlurEffect.Style.regular
                     )
                     let blurEffectView = UIVisualEffectView(effect: blurEffect)
                     blurEffectView.frame = window.bounds
@@ -93,37 +94,40 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                     let mainBundle = Bundle.main
 
                     if let image = UIImage(
-                        named: "SecureLogo", // 确认这个名字与 Runner 的 Assets.xcassets 中的 Image Set 名称完全一致
-                        in: mainBundle, // 直接从主 Bundle 查找
+                        named: "SecureLogo",  // 确认这个名字与 Runner 的 Assets.xcassets 中的 Image Set 名称完全一致
+                        in: mainBundle,  // 直接从主 Bundle 查找
                         compatibleWith: nil
                     ) {
                         iconImageView = UIImageView(image: image)
                         iconImageView?.contentMode = .scaleAspectFit
-                        iconImageView?.translatesAutoresizingMaskIntoConstraints = false
-                        iconImageView?.widthAnchor.constraint(equalToConstant: 20).isActive = true
-                        iconImageView?.heightAnchor.constraint(equalToConstant: 20).isActive = true
+                        iconImageView?
+                            .translatesAutoresizingMaskIntoConstraints = false
+                        iconImageView?.widthAnchor.constraint(
+                            equalToConstant: 20
+                        ).isActive = true
+                        iconImageView?.heightAnchor.constraint(
+                            equalToConstant: 20
+                        ).isActive = true
                     } else {
                         print("Error: Icon 'SecureLogo' not found.")
-                        print("Attempted to load from Main Bundle path: \(mainBundle.bundlePath)")
-                        if let assetsPath = mainBundle.path(forResource: "Assets", ofType: "car") {
-                            print("Main Bundle Assets.car found at: \(assetsPath)")
+                        print(
+                            "Attempted to load from Main Bundle path: \(mainBundle.bundlePath)"
+                        )
+                        if let assetsPath = mainBundle.path(
+                            forResource: "Assets",
+                            ofType: "car"
+                        ) {
+                            print(
+                                "Main Bundle Assets.car found at: \(assetsPath)"
+                            )
                         } else {
                             print("Main Bundle Assets.car NOT found.")
                         }
-                        // 更多调试：如果你还想保留这个，可以帮助确认
-                        print("Trying to find 'SecureLogo' in all bundles:")
-                        for bundle in Bundle.allBundles {
-                            if let img = UIImage(named: "SecureLogo", in: bundle, compatibleWith: nil) {
-                                print("Found 'SecureLogo' in bundle: \(bundle.bundlePath)")
-                                break
-                            }
-                        }
                     }
-
 
                     // 2. 创建文字标签
                     let textLabel = UILabel()
-                    textLabel.text = "您的应用已锁定"  // 你的文字内容
+                    textLabel.text = self.lockedDisplayMessage  // 你的文字内容
                     textLabel.textColor = .darkGray
                     textLabel.font = UIFont.systemFont(ofSize: 15)  // 调整字体大小
                     textLabel.textAlignment = .left  // 在 StackView 中，子视图的对齐通常由 StackView 管理，但这里设为 left 也无妨
@@ -151,7 +155,8 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                             equalTo: window.centerXAnchor
                         ),
                         stackView.centerYAnchor.constraint(
-                            equalTo: window.centerYAnchor
+                            equalTo: window.bottomAnchor,
+                            constant: -38
                         ),
                     ])
 
@@ -185,10 +190,13 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
     ) {
         if call.method == "secure" {
             secured = true
-            if let args = call.arguments as? [String: Any],
-                let opacity = args["opacity"] as? NSNumber
-            {
-                self.opacity = opacity as! CGFloat
+            if let args = call.arguments as? [String: Any] {
+                if let opacity = args["opacity"] as? NSNumber {
+                    self.opacity = opacity as! CGFloat
+                }
+                if let lockedText = args["lockedText"] as? String {
+                    self.lockedDisplayMessage = lockedText
+                }
             }
         } else if call.method == "open" {
             secured = false
@@ -204,7 +212,6 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
     }
 
     func unlock() {
-        print("start unlock!!!")
         if let window = UIApplication.shared.windows.filter({ (w) -> Bool in
             return w.isHidden == false
         }).first,

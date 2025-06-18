@@ -30,8 +30,8 @@ class SecureApplicationNative {
     }
   }
 
-  static Future secure() {
-    return _channel.invokeMethod('secure');
+  static Future secure({required String lockedText}) {
+    return _channel.invokeMethod('secure', {"lockedText": lockedText});
   }
 
   static Future open() {

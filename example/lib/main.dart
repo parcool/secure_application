@@ -146,7 +146,7 @@ class _MyAppState extends State<MyApp> {
                                 ],
                               )
                             : ElevatedButton(
-                                onPressed: () => valueNotifier.secure(),
+                                onPressed: () => valueNotifier.secure(lockedText: 'this is locked text'),
                                 child: Text('Secure app'),
                               ),
                       ),

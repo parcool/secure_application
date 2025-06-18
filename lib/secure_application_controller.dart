@@ -143,8 +143,8 @@ class SecureApplicationController
   /// App will be secured and content will not be visible if user switch app
   ///
   /// on Android this will also prevent scrensshot/screen recording
-  void secure() {
-    SecureApplicationNative.secure();
+  void secure({required String lockedText}) {
+    SecureApplicationNative.secure(lockedText: lockedText);
     if (!value.secured) {
       value = value.copyWith(secured: true);
       notifyListeners();
