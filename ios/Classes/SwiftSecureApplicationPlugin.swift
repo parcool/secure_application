@@ -85,49 +85,67 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                     // MARK: - 添加图标和文字
 
                     // 1. 创建图标视图
-                    let bundle = Bundle(for: type(of: self))
                     var iconImageView: UIImageView?
 
-                    // ====== 核心修改点：更可靠地获取插件的资源 Bundle ======
-                    // 获取当前插件的 Bundle 名称
-                    // 对于 podspec 定义的插件，其资源 Bundle 名称通常是 "Flutter<PluginName>Plugin.bundle"
-                    // 或者直接是 "<PluginName>.bundle"
-                    // 对于 secure_application，尝试 "secure_application.bundle"
-                    let bundleName = "secure_application"  // 这是你的插件名称
-                    let frameworkBundle = Bundle(for: type(of: self)) // 获取当前类所在的 Framework/Bundle
-                    var resourceBundle: Bundle? = nil
+                    // ====== 核心修改：使用 podspec 中定义的资源 Bundle 名称 ======
+                    // 获取当前 SwiftSecureApplicationPlugin 类所在的 Bundle
+                    // resourceBundle 通常会存在于这个 Bundle 的子目录中，或者作为独立的 Bundle
+                    let currentPluginBundle = Bundle(for: type(of: self))
 
-                    // 优先尝试从 Framework Bundle 中找到命名为 "secure_application.bundle" 的资源 Bundle
-                    if let path = frameworkBundle.path(forResource: bundleName, ofType: "bundle") {
-                        resourceBundle = Bundle(path: path)
-                    } else if let path = frameworkBundle.path(forResource: "Flutter\(bundleName.capitalized)Plugin", ofType: "bundle") {
-                        // 尝试 Flutter 自动生成的命名约定，例如 FlutterSecureApplicationPlugin.bundle
-                        resourceBundle = Bundle(path: path)
+                    // 这里直接指定你在 .podspec 中 resource_bundles 定义的 Bundle 名称
+                    // 通常，这个 Bundle 会被拷贝到主应用的 Bundle 中
+                    let resourceBundleNameInPodspec =
+                        "secure_application_resources"  // 与 .podspec 中的键一致
+
+                    var finalResourceBundle: Bundle? = nil
+                    // 尝试从当前插件 Bundle 中找到指定名称的子 Bundle (CocoaPods 的常见做法)
+                    if let path = currentPluginBundle.path(
+                        forResource: resourceBundleNameInPodspec,
+                        ofType: "bundle"
+                    ) {
+                        finalResourceBundle = Bundle(path: path)
                     } else {
-                        // 如果以上都没有找到，退回到当前类的 Bundle (对于example或某些特殊情况可能有效)
-                        resourceBundle = frameworkBundle
+                        // 这种情况通常发生在 Flutter 的 example 或直接集成而非 Pod 方式
+                        // 资源可能直接在插件的 Framework bundle 中，或甚至直接在主应用 bundle 中
+                        finalResourceBundle = currentPluginBundle
                     }
 
                     if let image = UIImage(
                         named: "SecureLogo",
-                        in: resourceBundle,
+                        in: finalResourceBundle,  // 使用最终确定的资源 Bundle
                         compatibleWith: nil
                     ) {
                         iconImageView = UIImageView(image: image)
                         iconImageView?.contentMode = .scaleAspectFit
-                        // 设置图标的固定大小，例如 16x16pt
                         iconImageView?
                             .translatesAutoresizingMaskIntoConstraints = false
                         iconImageView?.widthAnchor.constraint(
                             equalToConstant: 20
-                        ).isActive = true  // 调整图标宽度
+                        ).isActive = true
                         iconImageView?.heightAnchor.constraint(
                             equalToConstant: 20
-                        ).isActive = true  // 调整图标高度
+                        ).isActive = true
                     } else {
+                        print("Error: Icon 'SecureLogo' not found.")
                         print(
-                            "Error: Icon 'SecureLogo' not found in plugin bundle."
+                            "Attempted to load from bundle path: \(finalResourceBundle?.bundlePath ?? "nil")"
                         )
+                        if let bundleContent = finalResourceBundle {
+                            if let assetsPath = bundleContent.path(
+                                forResource: "Assets",
+                                ofType: "car"
+                            ) {
+                                print("Found Assets.car at: \(assetsPath)")
+                            } else {
+                                print(
+                                    "Assets.car not found in bundle at: \(bundleContent.bundlePath)"
+                                )
+                            }
+                            // 进一步检查是否能列出bundle内容，但这可能很慢
+                            // if let contents = try? FileManager.default.contentsOfDirectory(atPath: bundleContent.bundlePath) {
+                            //     print("Bundle contents: \(contents)")
+                            // }
+                        }
                     }
 
                     // 2. 创建文字标签
