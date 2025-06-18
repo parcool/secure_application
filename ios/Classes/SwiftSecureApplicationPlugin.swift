@@ -37,8 +37,8 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
         )
     }
 
-    // 当应用即将进入后台时
-    public func applicationWillResignActive(_ application: UIApplication) {
+    // 当应用即将进入后台时（原始：applicationWillResignActive）
+    public func applicationDidEnterBackground(_ application: UIApplication) {
         print("iOS App: Will Resign Active")
         methodChannel?.invokeMethod(
             "appLifecycleStateChanged",
