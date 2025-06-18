@@ -87,66 +87,39 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                     // 1. 创建图标视图
                     var iconImageView: UIImageView?
 
-                    // ====== 核心修改：使用 podspec 中定义的资源 Bundle 名称 ======
-                    // 获取当前 SwiftSecureApplicationPlugin 类所在的 Bundle
-                    // resourceBundle 通常会存在于这个 Bundle 的子目录中，或者作为独立的 Bundle
-                    let currentPluginBundle = Bundle(for: type(of: self))
-
-                    // 这里直接指定你在 .podspec 中 resource_bundles 定义的 Bundle 名称
-                    // 通常，这个 Bundle 会被拷贝到主应用的 Bundle 中
-                    let resourceBundleNameInPodspec =
-                        "secure_application_resources"  // 与 .podspec 中的键一致
-
-                    var finalResourceBundle: Bundle? = nil
-                    // 尝试从当前插件 Bundle 中找到指定名称的子 Bundle (CocoaPods 的常见做法)
-                    if let path = currentPluginBundle.path(
-                        forResource: resourceBundleNameInPodspec,
-                        ofType: "bundle"
-                    ) {
-                        finalResourceBundle = Bundle(path: path)
-                    } else {
-                        // 这种情况通常发生在 Flutter 的 example 或直接集成而非 Pod 方式
-                        // 资源可能直接在插件的 Framework bundle 中，或甚至直接在主应用 bundle 中
-                        finalResourceBundle = currentPluginBundle
-                    }
+                    // ====== 最终修改：直接从主应用程序的 main Bundle 加载资源 ======
+                    // 因为你已经把 SecureLogo 放到 Runner 的 Assets.xcassets 里了
+                    // 所以直接使用 Bundle.main 来查找是正确的。
+                    let mainBundle = Bundle.main
 
                     if let image = UIImage(
-                        named: "SecureLogo",
-                        in: finalResourceBundle,  // 使用最终确定的资源 Bundle
+                        named: "SecureLogo", // 确认这个名字与 Runner 的 Assets.xcassets 中的 Image Set 名称完全一致
+                        in: mainBundle, // 直接从主 Bundle 查找
                         compatibleWith: nil
                     ) {
                         iconImageView = UIImageView(image: image)
                         iconImageView?.contentMode = .scaleAspectFit
-                        iconImageView?
-                            .translatesAutoresizingMaskIntoConstraints = false
-                        iconImageView?.widthAnchor.constraint(
-                            equalToConstant: 20
-                        ).isActive = true
-                        iconImageView?.heightAnchor.constraint(
-                            equalToConstant: 20
-                        ).isActive = true
+                        iconImageView?.translatesAutoresizingMaskIntoConstraints = false
+                        iconImageView?.widthAnchor.constraint(equalToConstant: 20).isActive = true
+                        iconImageView?.heightAnchor.constraint(equalToConstant: 20).isActive = true
                     } else {
                         print("Error: Icon 'SecureLogo' not found.")
-                        print(
-                            "Attempted to load from bundle path: \(finalResourceBundle?.bundlePath ?? "nil")"
-                        )
-                        if let bundleContent = finalResourceBundle {
-                            if let assetsPath = bundleContent.path(
-                                forResource: "Assets",
-                                ofType: "car"
-                            ) {
-                                print("Found Assets.car at: \(assetsPath)")
-                            } else {
-                                print(
-                                    "Assets.car not found in bundle at: \(bundleContent.bundlePath)"
-                                )
+                        print("Attempted to load from Main Bundle path: \(mainBundle.bundlePath)")
+                        if let assetsPath = mainBundle.path(forResource: "Assets", ofType: "car") {
+                            print("Main Bundle Assets.car found at: \(assetsPath)")
+                        } else {
+                            print("Main Bundle Assets.car NOT found.")
+                        }
+                        // 更多调试：如果你还想保留这个，可以帮助确认
+                        print("Trying to find 'SecureLogo' in all bundles:")
+                        for bundle in Bundle.allBundles {
+                            if let img = UIImage(named: "SecureLogo", in: bundle, compatibleWith: nil) {
+                                print("Found 'SecureLogo' in bundle: \(bundle.bundlePath)")
+                                break
                             }
-                            // 进一步检查是否能列出bundle内容，但这可能很慢
-                            // if let contents = try? FileManager.default.contentsOfDirectory(atPath: bundleContent.bundlePath) {
-                            //     print("Bundle contents: \(contents)")
-                            // }
                         }
                     }
+
 
                     // 2. 创建文字标签
                     let textLabel = UILabel()
