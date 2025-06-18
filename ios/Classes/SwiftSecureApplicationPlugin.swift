@@ -87,10 +87,23 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                     // 1. 创建图标视图
                     let bundle = Bundle(for: type(of: self))
                     var iconImageView: UIImageView?
-                    // 替换 "MyLockIcon" 为你在 Assets.xcassets 中为 Image Set 起的名字
+
+                    // ====== 重点修改这里：更明确地获取插件的 Bundle ======
+                    // 获取当前 SwiftSecureApplicationPlugin 类所在的 Bundle
+                    let currentBundle = Bundle(for: type(of: self))
+                    // 获取当前 Bundle 中名为 "secure_application.bundle" 的 Bundle (通常插件会打包成一个 .bundle 文件)
+                    // 如果你的插件名称是 secure_application，那么对应的资源包通常是 secure_application.bundle
+                    var resourceBundle: Bundle? = nil
+                    if let resourceBundlePath = currentBundle.path(
+                        forResource: "secure_application",
+                        ofType: "bundle"
+                    ) {
+                        resourceBundle = Bundle(path: resourceBundlePath)
+                    }
+
                     if let image = UIImage(
                         named: "SecureLogo",
-                        in: bundle,
+                        in: resourceBundle ?? currentBundle,
                         compatibleWith: nil
                     ) {
                         iconImageView = UIImageView(image: image)
@@ -106,7 +119,7 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                         ).isActive = true  // 调整图标高度
                     } else {
                         print(
-                            "Error: Icon 'MyLockIcon' not found in plugin bundle."
+                            "Error: Icon 'SecureLogo' not found in plugin bundle."
                         )
                     }
 
