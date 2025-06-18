@@ -58,8 +58,8 @@ class _SecureGateState extends State<SecureGate>
   void didChangeDependencies() {
     if (_secureApplicationController == null) {
       _secureApplicationController = SecureApplicationProvider.of(context);
-      _secureApplicationController!.addListener(_sercureNotified);
-      _sercureNotified();
+      _secureApplicationController!.addListener(_secureNotified);
+      _secureNotified();
     }
     super.didChangeDependencies();
   }
@@ -72,7 +72,7 @@ class _SecureGateState extends State<SecureGate>
     }
   }
 
-  void _sercureNotified() {
+  void _secureNotified() {
     if (_lock == false && _secureApplicationController!.locked == true) {
       _lock = true;
       _gateVisibility.value = 1;
@@ -90,7 +90,7 @@ class _SecureGateState extends State<SecureGate>
 
   @override
   void dispose() {
-    _secureApplicationController!.removeListener(_sercureNotified);
+    _secureApplicationController!.removeListener(_secureNotified);
     _gateVisibility.dispose();
     super.dispose();
   }

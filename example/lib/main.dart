@@ -1,7 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:sa_example/lock_disturb_controller.dart';
 import 'package:secure_application/secure_application.dart';
+import 'package:secure_application/secure_application_native.dart';
 
 void main() => runApp(MaterialApp(home: MyApp()));
 
@@ -33,10 +38,9 @@ class _MyAppState extends State<MyApp> {
     var width = MediaQuery.of(context).size.width * 0.8;
     return MaterialApp(
       home: SecureApplication(
-        nativeRemoveDelay: 1000,
+        nativeRemoveDelay: 0,
         onNeedUnlock: (secure) async {
-          print(
-              'need unlock maybe use biometric to confirm and then sercure.unlock() or you can use the lockedBuilder');
+          print('need unlock maybe use biometric to confirm and then sercure.unlock() or you can use the lockedBuilder');
           // var authResult = authMyUser();
           // if (authResul) {
           //  secure.unlock();
@@ -56,35 +60,45 @@ class _MyAppState extends State<MyApp> {
         },
         onAuthenticationSucceed: () async {
           // clean you data
-
           setState(() {
             failedAuth = false;
           });
           print('auth success');
         },
+        onActive: () {
+          if (LockDisturbController.instance.isOpenFilexDisturbing) {
+            SecureApplicationNative.unlock();
+          }
+        },
+        onInactive: () {
+          print('从原生传来onInactive!');
+          if (LockDisturbController.instance.isOpenFilexDisturbing) {
+            exit(0);
+          }
+        },
         child: Builder(builder: (context) {
           if (subLock == null)
             subLock = SecureApplicationProvider.of(context, listen: false)
                 ?.lockEvents
-                .listen((s) => history.add(
-                    '${DateTime.now().toIso8601String()} - ${s ? 'locked' : 'unlocked'}'));
+                .listen((s) => history.add('${DateTime.now().toIso8601String()} - ${s ? 'locked' : 'unlocked'}'));
           return SecureGate(
             blurr: blurr,
             opacity: opacity,
             lockedBuilder: (context, secureNotifier) => Center(
-                child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                ElevatedButton(
-                  child: Text('UNLOCK'),
-                  onPressed: () => secureNotifier?.authSuccess(unlock: true),
-                ),
-                ElevatedButton(
-                  child: Text('FAIL AUTHENTICATION'),
-                  onPressed: () => secureNotifier?.authFailed(unlock: true),
-                ),
-              ],
-            )),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  ElevatedButton(
+                    child: Text('UNLOCK'),
+                    onPressed: () => secureNotifier?.authSuccess(unlock: true),
+                  ),
+                  ElevatedButton(
+                    child: Text('FAIL AUTHENTICATION'),
+                    onPressed: () => secureNotifier?.authFailed(unlock: true),
+                  ),
+                ],
+              ),
+            ),
             child: Scaffold(
               appBar: AppBar(
                 title: const Text('Secure Window Example'),
@@ -92,11 +106,24 @@ class _MyAppState extends State<MyApp> {
               body: Center(
                 child: Builder(builder: (context) {
                   var valueNotifier = SecureApplicationProvider.of(context);
-                  if (valueNotifier == null)
-                    throw new Exception(
-                        'Unable to find secure application context');
+                  if (valueNotifier == null) throw new Exception('Unable to find secure application context');
                   return ListView(
                     children: <Widget>[
+                      TextButton(
+                          onPressed: () async {
+                            const XTypeGroup typeGroup = XTypeGroup(
+                              label: 'images',
+                              // extensions: <String>['jpg', 'png', 'word', 'pdf'],
+                            );
+
+                            final XFile? file = await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
+                            if (file != null) {
+                              LockDisturbController.instance.isOpenFilexDisturbing = true;
+                              await OpenFilex.open(file.path);
+                              LockDisturbController.instance.isOpenFilexDisturbing = false;
+                            }
+                          },
+                          child: Text('选择文件')),
                       Text('This is secure content'),
                       ValueListenableBuilder<SecureApplicationState>(
                         valueListenable: valueNotifier,
@@ -109,13 +136,11 @@ class _MyAppState extends State<MyApp> {
                                   ),
                                   state.paused
                                       ? ElevatedButton(
-                                          onPressed: () =>
-                                              valueNotifier.unpause(),
+                                          onPressed: () => valueNotifier.unpause(),
                                           child: Text('resume security'),
                                         )
                                       : ElevatedButton(
-                                          onPressed: () =>
-                                              valueNotifier.pause(),
+                                          onPressed: () => valueNotifier.pause(),
                                           child: Text('pause security'),
                                         ),
                                 ],
@@ -139,8 +164,7 @@ class _MyAppState extends State<MyApp> {
                       ),
                       StreamBuilder(
                         stream: valueNotifier.authenticationEvents,
-                        builder: (context, snapshot) =>
-                            Text('Last auth status is: ${snapshot.data}'),
+                        builder: (context, snapshot) => Text('Last auth status is: ${snapshot.data}'),
                       ),
                       ElevatedButton(
                         onPressed: () => valueNotifier.lock(),
@@ -152,11 +176,7 @@ class _MyAppState extends State<MyApp> {
                           children: <Widget>[
                             Text('Blurr:'),
                             Expanded(
-                              child: Slider(
-                                  value: blurr,
-                                  min: 0,
-                                  max: 100,
-                                  onChanged: (v) => setState(() => blurr = v)),
+                              child: Slider(value: blurr, min: 0, max: 100, onChanged: (v) => setState(() => blurr = v)),
                             ),
                             Text(blurr.floor().toString()),
                           ],
@@ -168,12 +188,7 @@ class _MyAppState extends State<MyApp> {
                           children: <Widget>[
                             Text('opacity:'),
                             Expanded(
-                              child: Slider(
-                                  value: opacity,
-                                  min: 0,
-                                  max: 1,
-                                  onChanged: (v) =>
-                                      setState(() => opacity = v)),
+                              child: Slider(value: opacity, min: 0, max: 1, onChanged: (v) => setState(() => opacity = v)),
                             ),
                             Text((opacity * 100).floor().toString() + "%"),
                           ],
