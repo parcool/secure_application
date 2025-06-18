@@ -26,18 +26,23 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
-
     // 当应用已进入 Active 状态时（在前台并接收事件）
     public func applicationDidBecomeActive(_ application: UIApplication) {
         print("iOS App: Did Become Active")
         // 可以通过 channel 将状态发送给 Dart 端
-        methodChannel?.invokeMethod("appLifecycleStateChanged", arguments: "active")
+        methodChannel?.invokeMethod(
+            "appLifecycleStateChanged",
+            arguments: "active"
+        )
     }
 
     // 当应用即将进入后台时
     public func applicationWillResignActive(_ application: UIApplication) {
         print("iOS App: Will Resign Active")
-        methodChannel?.invokeMethod("appLifecycleStateChanged", arguments: "inactive")
+        methodChannel?.invokeMethod(
+            "appLifecycleStateChanged",
+            arguments: "inactive"
+        )
         if secured {
             self.registerBackgroundTask()
             UIApplication.shared.ignoreSnapshotOnNextApplicationLaunch()
@@ -76,6 +81,71 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
 
                     window.addSubview(blurEffectView)
                     window.bringSubviewToFront(blurEffectView)
+
+                    // MARK: - 添加图标和文字
+
+                    // 1. 创建图标视图
+                    let bundle = Bundle(for: type(of: self))
+                    var iconImageView: UIImageView?
+                    // 替换 "MyLockIcon" 为你在 Assets.xcassets 中为 Image Set 起的名字
+                    if let image = UIImage(
+                        named: "SecureLogo",
+                        in: bundle,
+                        compatibleWith: nil
+                    ) {
+                        iconImageView = UIImageView(image: image)
+                        iconImageView?.contentMode = .scaleAspectFit
+                        // 设置图标的固定大小，例如 16x16pt
+                        iconImageView?
+                            .translatesAutoresizingMaskIntoConstraints = false
+                        iconImageView?.widthAnchor.constraint(
+                            equalToConstant: 20
+                        ).isActive = true  // 调整图标宽度
+                        iconImageView?.heightAnchor.constraint(
+                            equalToConstant: 20
+                        ).isActive = true  // 调整图标高度
+                    } else {
+                        print(
+                            "Error: Icon 'MyLockIcon' not found in plugin bundle."
+                        )
+                    }
+
+                    // 2. 创建文字标签
+                    let textLabel = UILabel()
+                    textLabel.text = "您的应用已锁定"  // 你的文字内容
+                    textLabel.textColor = .darkGray
+                    textLabel.font = UIFont.systemFont(ofSize: 15)  // 调整字体大小
+                    textLabel.textAlignment = .left  // 在 StackView 中，子视图的对齐通常由 StackView 管理，但这里设为 left 也无妨
+
+                    // 3. 创建 UIStackView
+                    let stackView = UIStackView()
+                    stackView.axis = .horizontal  // 水平排列
+                    stackView.alignment = .center  // 垂直居中对齐（针对子视图）
+                    stackView.spacing = 8  // 图标和文字之间的间距
+                    stackView.tag = 99695  // 给 StackView 一个tag
+
+                    if let icon = iconImageView {
+                        stackView.addArrangedSubview(icon)
+                    }
+                    stackView.addArrangedSubview(textLabel)
+
+                    // 4. 将 StackView 添加到 window 并居中
+                    window.addSubview(stackView)
+                    window.bringSubviewToFront(stackView)
+
+                    // 使用 Auto Layout 居中 StackView
+                    stackView.translatesAutoresizingMaskIntoConstraints = false
+                    NSLayoutConstraint.activate([
+                        stackView.centerXAnchor.constraint(
+                            equalTo: window.centerXAnchor
+                        ),
+                        stackView.centerYAnchor.constraint(
+                            equalTo: window.centerYAnchor
+                        ),
+                    ])
+
+                    // MARK: - 结束添加
+
                     window.snapshotView(afterScreenUpdates: true)
                     RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.3))
                 }
@@ -83,7 +153,6 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
             self.endBackgroundTask()
         }
     }
-
 
     func registerBackgroundTask() {
         self.backgroundTask = UIApplication.shared.beginBackgroundTask {
@@ -127,18 +196,22 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
         print("start unlock!!!")
         if let window = UIApplication.shared.windows.filter({ (w) -> Bool in
             return w.isHidden == false
-        }).first, let view = window.viewWithTag(99699),
-            let blurrView = window.viewWithTag(99698)
+        }).first,
+            let colorView = window.viewWithTag(99699),
+            let blurrView = window.viewWithTag(99698),
+            let combinedView = window.viewWithTag(99695)  // 获取组合视图
         {
             UIView.animate(
                 withDuration: 0.3,
                 animations: {
-                    view.alpha = 0.0
+                    colorView.alpha = 0.0
                     blurrView.alpha = 0.0
+                    combinedView.alpha = 0.0  // 动画移除组合视图
                 },
                 completion: { finished in
-                    view.removeFromSuperview()
+                    colorView.removeFromSuperview()
                     blurrView.removeFromSuperview()
+                    combinedView.removeFromSuperview()  // 移除组合视图
                 }
             )
         }
