@@ -94,8 +94,8 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                     let mainBundle = Bundle.main
 
                     if let image = UIImage(
-                        named: "SecureLogo",  // 确认这个名字与 Runner 的 Assets.xcassets 中的 Image Set 名称完全一致
-                        in: mainBundle,  // 直接从主 Bundle 查找
+                        named: "SecuredIcon",
+                        in: mainBundle,
                         compatibleWith: nil
                     ) {
                         iconImageView = UIImageView(image: image)
@@ -196,6 +196,7 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
                 }
                 if let lockedText = args["lockedText"] as? String {
                     self.lockedDisplayMessage = lockedText
+                    updateOverlayTextIfVisible(lockedText)
                 }
             }
         } else if call.method == "open" {
@@ -208,6 +209,19 @@ public class SwiftSecureApplicationPlugin: NSObject, FlutterPlugin {
             }
         } else if call.method == "unlock" {
             unlock()
+        }
+    }
+
+    private func updateOverlayTextIfVisible(_ text: String) {
+        guard let window = UIApplication.shared.windows.first(where: { !$0.isHidden }),
+              let stackView = window.viewWithTag(99695) as? UIStackView else {
+            return
+        }
+        for subview in stackView.arrangedSubviews {
+            if let label = subview as? UILabel {
+                label.text = text
+                break
+            }
         }
     }
 
